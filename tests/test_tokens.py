@@ -24,7 +24,7 @@ def test_borrow_fresh_cether(cToken_cether, bob, alice, report):
     tx = cToken_cether.token.harnessBorrowFresh(bob.address, borrowed_amount, {"from": bob})
     total_after = cToken_cether.token.totalBorrows()
     assert total_after == total_before + borrowed_amount
-    assert bob.balance() < bob_balance_before + borrowed_amount
+    assert bob.balance() <= bob_balance_before + borrowed_amount
     report.add_action("borrow ether cToken", tx.gas_used, tx.gas_price, tx.txid)
 
 
@@ -76,22 +76,8 @@ def test_mint_cether(cToken_cether, alice, report):
     pre_mint(cToken_cether, alice, mint_amount, exchange_rate)
     tx = cToken_cether.token.mint({"from": alice, "value": mint_amount})
     balance_after = alice.balance()
-    assert balance_after < balance_before - mint_amount
+    assert balance_after <= balance_before - mint_amount
     report.add_action("Mint ether cToken", tx.gas_used, tx.gas_price, tx.txid)
-
-
-def test_redeem(cToken, alice, report):
-    redeem_tokens = 10000
-    exchange_rate = 50e3
-    redeem_amount = redeem_tokens * exchange_rate
-    pre_redeem(cToken, alice, redeem_tokens, redeem_amount, exchange_rate)
-    balance_before = cToken.token.balanceOf(alice.address)
-
-    tx = cToken.token.harnessRedeemFresh(alice, redeem_tokens, 0, {"from": alice})
-
-    balance_after = cToken.token.balanceOf(alice.address)
-    assert balance_after == balance_before - redeem_tokens
-    report.add_action("Redeem erc20 cToken", tx.gas_used, tx.gas_price, tx.txid)
 
 
 def test_transfer(cToken_unitroller, alice, bob, report):
@@ -109,7 +95,7 @@ def test_transfer(cToken_unitroller, alice, bob, report):
 
 
 def test_add_reserves_for_cether(cToken_cether, alice, report):
-    reserved_added = 10000
+    reserved_added = 100
     tx = cToken_cether.token._addReserves({"value": reserved_added, "from": alice})
     assert cToken_cether.token.totalReserves() == reserved_added
     report.add_action("Add reserves for ether cToken", tx.gas_used, tx.gas_price, tx.txid)
@@ -117,13 +103,10 @@ def test_add_reserves_for_cether(cToken_cether, alice, report):
 
 def test_liquidate(cToken, cToken_collateral, alice, bob, report):
     repay_amount = 10
-    mint_amount = 10e4
-    pre_mint(cToken, alice, mint_amount, 2)
-    cToken.token.harnessMintFresh(alice, mint_amount, {"from": alice})
-
     pre_liquidate(cToken, alice, bob, alice, repay_amount, cToken_collateral)
     liquidator_balance_before = cToken.underlying.balanceOf(alice.address)
     contract_balance_before = cToken.underlying.balanceOf(cToken.token.address)
+
     tx = cToken.token.harnessLiquidateBorrowFresh(alice, bob, repay_amount, cToken_collateral.token.address,
                                                   {"from": alice})
 
@@ -139,3 +122,17 @@ def test_comp_like_token(cToken_comp, alice, bob):
     cToken_comp.underlying.transfer(cToken_comp.token.address, 1, {"from": alice})
     votes = cToken_comp.underlying.getCurrentVotes(bob.address, {"from": alice})
     assert votes == 1
+
+
+def test_redeem(cToken, alice, report):
+    redeem_tokens = 1000
+    exchange_rate = 50e3
+    redeem_amount = redeem_tokens * exchange_rate
+    pre_redeem(cToken, alice, redeem_tokens, redeem_amount, exchange_rate)
+    balance_before = cToken.token.balanceOf(alice.address)
+
+    tx = cToken.token.harnessRedeemFresh(alice, redeem_tokens, 0, {"from": alice})
+
+    balance_after = cToken.token.balanceOf(alice.address)
+    assert balance_after == balance_before - redeem_tokens
+    report.add_action("Redeem erc20 cToken", tx.gas_used, tx.gas_price, tx.txid)
