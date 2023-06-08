@@ -117,12 +117,13 @@ def test_add_reserves_for_cether(cToken_cether, alice, report):
 
 def test_liquidate(cToken, cToken_collateral, alice, bob, report):
     repay_amount = 10
-    cToken_collateral.token.harnessSetExchangeRate(2, {"from": alice})
+    mint_amount = 10e4
+    pre_mint(cToken, alice, mint_amount, 2)
+    cToken.token.harnessMintFresh(alice, mint_amount, {"from": alice})
+
     pre_liquidate(cToken, alice, bob, alice, repay_amount, cToken_collateral)
     liquidator_balance_before = cToken.underlying.balanceOf(alice.address)
     contract_balance_before = cToken.underlying.balanceOf(cToken.token.address)
-    print(alice.balance())
-    print(bob.balance())
     tx = cToken.token.harnessLiquidateBorrowFresh(alice, bob, repay_amount, cToken_collateral.token.address,
                                                   {"from": alice})
 
